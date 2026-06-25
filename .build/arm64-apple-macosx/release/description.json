@@ -1,0 +1,376 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.ClaudeUsageMonitor-arm64-apple-macosx26.0-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/sources",
+      "importPath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/App.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Chart.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Keychain.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/OAuthLogin.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Service.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Store.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/ViewModel.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "ClaudeUsageMonitor",
+      "moduleOutputPath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/Modules/ClaudeUsageMonitor.swiftmodule",
+      "objects" : [
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/App.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Chart.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Keychain.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Models.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/OAuthLogin.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Service.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Store.swift.o",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/ViewModel.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "10",
+        "-serialize-diagnostics",
+        "-O",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "ClaudeUsageMonitor_main",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "claude_usage"
+      ],
+      "outputFileMapPath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/App.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Chart.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Keychain.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/OAuthLogin.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Service.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Store.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/ViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/Modules/ClaudeUsageMonitor.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/App.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Chart.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Keychain.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Models.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/OAuthLogin.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Service.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Store.swift",
+        "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/ViewModel.swift"
+      ],
+      "tempsPath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build",
+      "wholeModuleOptimization" : true
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "ClaudeUsageMonitor" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "ClaudeUsageMonitor",
+      "-package-name",
+      "claude_usage",
+      "-c",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/App.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Chart.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Keychain.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Models.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/OAuthLogin.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Service.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Store.swift",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/ViewModel.swift",
+      "-I",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "10",
+      "-serialize-diagnostics",
+      "-O",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "ClaudeUsageMonitor_main",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "claude_usage",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "ClaudeUsageMonitor" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/App.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Chart.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Keychain.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/OAuthLogin.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Service.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/Store.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/Sources/ClaudeUsageMonitor/ViewModel.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/sources"
+    },
+    "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/App.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Chart.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Keychain.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/OAuthLogin.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Service.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/Store.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.build/ViewModel.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/ClaudeUsageMonitor.product/Objects.LinkFileList"
+    },
+    "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/kingsfavor/Documents/projects/playground/claude-usage/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
