@@ -1,0 +1,25 @@
+name: CI
+
+# Fast compile check on every push to main and every PR — catches build
+# breakage before a release tag is ever cut. No signing or secrets involved.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+      - name: Swift version
+        run: swift --version
+      - name: Build (release)
+        run: swift build -c release

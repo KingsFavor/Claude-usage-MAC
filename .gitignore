@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Swift build artifacts
+.build/
+
+# Packaged output (produced by packaging/build.sh and CI)
+dist/

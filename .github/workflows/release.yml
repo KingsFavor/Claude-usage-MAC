@@ -1,0 +1,178 @@
+name: Release
+
+# Push a version tag to cut a release:
+#   git tag v1.2.3 && git push origin v1.2.3
+# The workflow builds, Developer-ID signs, notarizes + staples, packages a DMG,
+# publishes a GitHub Release, then bumps the Homebrew cask in the tap repo.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (without leading v), e.g. 1.2.3"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      sha256: ${{ steps.pkg.outputs.sha256 }}
+      dmg_name: ${{ steps.pkg.outputs.dmg_name }}
+      skipped: ${{ steps.guard.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail-safe: if the signing/notarization secrets aren't configured yet,
+      # skip cleanly instead of erroring out. Add the secrets (see docs/RELEASE.md)
+      # to enable real signed builds.
+      - name: Check secrets
+        id: guard
+        env:
+          CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          NOTARY: ${{ secrets.NOTARY_API_KEY_P8 }}
+        run: |
+          if [ -z "$CERT" ] || [ -z "$NOTARY" ]; then
+            echo "::warning::Signing/notarization secrets not set — skipping build. See docs/RELEASE.md."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve version
+        id: meta
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version $VERSION"
+
+      - name: Select Xcode
+        if: steps.guard.outputs.skip != 'true'
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Import Developer ID certificate
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          CERT_P12_BASE64: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
+
+          echo "$CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          security import "$CERT_PATH" -P "$CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+
+          # Make the temp keychain visible to codesign without dropping the login keychain.
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          rm -f "$CERT_PATH"
+
+          echo "Signing identities:"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Write notarization API key
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_API_KEY_P8 }}
+        run: |
+          echo "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary_key.p8"
+
+      - name: Build, sign, notarize & package
+        if: steps.guard.outputs.skip != 'true'
+        id: pkg
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          SIGN_ID: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+          NOTARIZE: "1"
+          NOTARY_KEY: ${{ runner.temp }}/notary_key.p8
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.NOTARY_API_ISSUER_ID }}
+        run: |
+          chmod +x packaging/build.sh
+          ./packaging/build.sh
+          DMG="dist/Claude-Usage-${VERSION}.dmg"
+          SHA=$(shasum -a 256 "$DMG" | awk '{print $1}')
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "dmg_name=$(basename "$DMG")" >> "$GITHUB_OUTPUT"
+          echo "Packaged $DMG ($SHA)"
+
+      - name: Publish GitHub Release
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          # Ensure a tag exists for workflow_dispatch runs.
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" "dist/Claude-Usage-${VERSION}.dmg" \
+              --title "Claude Usage $VERSION" --generate-notes --target "$GITHUB_SHA"
+          else
+            gh release create "$TAG" "dist/Claude-Usage-${VERSION}.dmg" \
+              --title "Claude Usage $VERSION" --generate-notes || \
+            gh release upload "$TAG" "dist/Claude-Usage-${VERSION}.dmg" --clobber
+          fi
+
+  homebrew:
+    needs: release
+    if: needs.release.outputs.skipped != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Homebrew cask in tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
+          SHA256: ${{ needs.release.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          TAP_REPO="KingsFavor/homebrew-tap"
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" tap
+          mkdir -p tap/Casks
+
+          cat > tap/Casks/claude-usage.rb <<EOF
+          cask "claude-usage" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
+
+            url "https://github.com/KingsFavor/Claude-usage-MAC/releases/download/v#{version}/Claude-Usage-#{version}.dmg"
+            name "Claude Usage"
+            desc "Menu bar app that monitors your Claude usage"
+            homepage "https://github.com/KingsFavor/Claude-usage-MAC"
+
+            app "Claude Usage.app"
+
+            zap trash: [
+              "~/Library/Preferences/com.kwonwoo.claude-usage-monitor.plist",
+            ]
+          end
+          EOF
+
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/claude-usage.rb
+          if git diff --cached --quiet; then
+            echo "Cask already up to date."
+          else
+            git commit -m "claude-usage ${VERSION}"
+            git push
+          fi
