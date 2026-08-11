@@ -34,8 +34,8 @@ jobs:
       - name: Check secrets
         id: guard
         env:
-          CERT: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
-          NOTARY: ${{ secrets.NOTARY_API_KEY_P8 }}
+          CERT: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          NOTARY: ${{ secrets.NOTARY_KEY_BASE64 }}
         run: |
           if [ -z "$CERT" ] || [ -z "$NOTARY" ]; then
             echo "::warning::Signing/notarization secrets not set — skipping build. See docs/RELEASE.md."
@@ -66,12 +66,13 @@ jobs:
       - name: Import Developer ID certificate
         if: steps.guard.outputs.skip != 'true'
         env:
-          CERT_P12_BASE64: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
-          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          CERT_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         run: |
           KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
           CERT_PATH="$RUNNER_TEMP/cert.p12"
+          # Ephemeral keychain password — generated per run, no secret needed.
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
 
           echo "$CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
 
@@ -94,9 +95,9 @@ jobs:
       - name: Write notarization API key
         if: steps.guard.outputs.skip != 'true'
         env:
-          NOTARY_KEY_P8: ${{ secrets.NOTARY_API_KEY_P8 }}
+          NOTARY_KEY_BASE64: ${{ secrets.NOTARY_KEY_BASE64 }}
         run: |
-          echo "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary_key.p8"
+          echo "$NOTARY_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/notary_key.p8"
 
       - name: Build, sign, notarize & package
         if: steps.guard.outputs.skip != 'true'
@@ -104,11 +105,11 @@ jobs:
         env:
           VERSION: ${{ steps.meta.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
-          SIGN_ID: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+          SIGN_ID: ${{ secrets.MACOS_SIGN_IDENTITY }}
           NOTARIZE: "1"
           NOTARY_KEY: ${{ runner.temp }}/notary_key.p8
-          NOTARY_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
-          NOTARY_ISSUER: ${{ secrets.NOTARY_API_ISSUER_ID }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
         run: |
           chmod +x packaging/build.sh
           ./packaging/build.sh
@@ -142,7 +143,7 @@ jobs:
     steps:
       - name: Update Homebrew cask in tap
         env:
-          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
           VERSION: ${{ needs.release.outputs.version }}
           SHA256: ${{ needs.release.outputs.sha256 }}
         run: |
