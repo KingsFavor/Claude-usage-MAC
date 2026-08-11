@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-14
+    runs-on: macos-15
     outputs:
       version: ${{ steps.meta.outputs.version }}
       sha256: ${{ steps.pkg.outputs.sha256 }}
@@ -56,9 +56,12 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
 
-      - name: Select Xcode
+      - name: Select latest Xcode (Swift 6)
         if: steps.guard.outputs.skip != 'true'
-        run: sudo xcode-select -switch /Applications/Xcode.app
+        run: |
+          LATEST=$(ls -d /Applications/Xcode_16*.app /Applications/Xcode.app 2>/dev/null | sort -V | tail -1)
+          echo "Using $LATEST"
+          sudo xcode-select -s "$LATEST"
 
       - name: Import Developer ID certificate
         if: steps.guard.outputs.skip != 'true'
