@@ -37,6 +37,9 @@ brew install --cask kingsfavor/tap/claude-usage
 방해되는 팝업·시스템 알림은 없으며, 배너의 **×** 로 그 버전 알림을 끌 수 있습니다.
 (GitHub 릴리즈를 최대 6시간에 한 번만 조용히 확인합니다.)
 
+직접 확인하고 싶으면 드롭다운 왼쪽 아래의 **"vX.Y.Z · 업데이트 확인"** 을 누르세요 —
+새 버전이 있으면 위 배너가, 없으면 잠깐 "최신 버전이에요" 표시가 뜹니다.
+
 실제 업데이트 방법:
 - **Homebrew**: `brew upgrade --cask claude-usage`
 - **DMG**: 배너의 **업데이트** 버튼(또는 [Releases](https://github.com/KingsFavor/Claude-usage-MAC/releases/latest))에서 최신 DMG를 받아 다시 드래그 설치

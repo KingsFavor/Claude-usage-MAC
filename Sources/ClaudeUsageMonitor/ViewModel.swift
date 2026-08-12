@@ -13,6 +13,8 @@ final class UsageViewModel: ObservableObject {
     @Published var needsLogin = false
     @Published var isLoggingIn = false
     @Published var availableUpdate: UpdateInfo?
+    @Published var isCheckingForUpdate = false
+    @Published var noUpdateNotice = false     // transient "you're up to date"
 
     private let service = UsageService()
     private let store = SnapshotStore()
@@ -26,6 +28,9 @@ final class UsageViewModel: ObservableObject {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         return (v?.isEmpty ?? true) ? nil : v
     }
+
+    /// Version string for display (nil for a bare dev binary).
+    var displayVersion: String? { appVersion }
 
     // Poll interval in seconds (persisted). Clamped to a sane range.
     var pollInterval: Double {
@@ -102,6 +107,34 @@ final class UsageViewModel: ObservableObject {
             // Respect a user who dismissed this exact version.
             if UserDefaults.standard.string(forKey: "dismissedUpdateVersion") == info.version { return }
             availableUpdate = info
+        }
+    }
+
+    /// User-initiated check. Bypasses the 6h throttle and any prior dismissal,
+    /// and gives explicit feedback: the banner if newer, else a brief "up to
+    /// date" note. No dialogs, no notifications.
+    func checkForUpdatesNow() async {
+        guard !isCheckingForUpdate else { return }
+        isCheckingForUpdate = true
+        defer { isCheckingForUpdate = false }
+
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastUpdateCheckAt")
+        guard let current = appVersion,
+              let info = await updateChecker.check(currentVersion: current) else {
+            availableUpdate = nil
+            flashNoUpdateNotice()
+            return
+        }
+        // Explicit check → show it even if this version was dismissed before.
+        UserDefaults.standard.removeObject(forKey: "dismissedUpdateVersion")
+        availableUpdate = info
+    }
+
+    private func flashNoUpdateNotice() {
+        noUpdateNotice = true
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            noUpdateNotice = false
         }
     }
 

@@ -193,6 +193,35 @@ struct ContentView: View {
         .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
     }
 
+    // Subtle on-demand update check. Normally just shows the version; tapping
+    // checks GitHub and either raises the banner or briefly confirms up-to-date.
+    @ViewBuilder private var updateCheckLink: some View {
+        if let v = model.displayVersion {
+            Button {
+                Task { await model.checkForUpdatesNow() }
+            } label: {
+                HStack(spacing: 4) {
+                    if model.isCheckingForUpdate {
+                        ProgressView().controlSize(.mini)
+                        Text("업데이트 확인 중…")
+                    } else if model.noUpdateNotice {
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("최신 버전이에요")
+                    } else {
+                        Text("v\(v) · 업데이트 확인")
+                    }
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(model.isCheckingForUpdate)
+            .help("최신 업데이트 확인")
+            .animation(.default, value: model.noUpdateNotice)
+            .animation(.default, value: model.isCheckingForUpdate)
+        }
+    }
+
     private var footer: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
@@ -210,6 +239,8 @@ struct ContentView: View {
                 .labelsHidden()
                 .font(.system(size: 10))
                 .frame(width: 92)
+
+                updateCheckLink
             }
             Spacer()
             Button {
