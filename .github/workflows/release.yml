@@ -127,13 +127,41 @@ jobs:
         run: |
           TAG="v${VERSION}"
           DMG="dist/Claude-Usage-${VERSION}.dmg"
+
+          # Install/update guidance shown at the top of every release page —
+          # kept in sync with the in-app "download page" link.
+          INSTALL=$(cat <<MD
+          ## 설치 · 업데이트
+
+          **Homebrew (권장)** — 이미 설치돼 있다면 업데이트:
+          \`\`\`bash
+          brew update && brew upgrade --cask claude-usage
+          \`\`\`
+          처음 설치라면:
+          \`\`\`bash
+          brew install --cask kingsfavor/tap/claude-usage
+          \`\`\`
+
+          **DMG로 직접 설치** — 아래 **Assets**의 \`Claude-Usage-${VERSION}.dmg\`를 받아
+          \`Claude Usage\`를 \`Applications\`로 드래그하세요. (Apple 공증 완료)
+
+          ---
+          MD
+          )
+
+          # Append GitHub's auto-generated changelog under the install section.
+          CHANGELOG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" --jq '.body' 2>/dev/null || echo "")
+          BODY="${INSTALL}"$'\n'"${CHANGELOG}"
+
           # Idempotent: replace the asset if the release exists, else create it.
           # (Checkout doesn't fetch tags, so probe the release via gh, not git.)
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$DMG" --clobber
+            gh release edit "$TAG" --notes "$BODY"
           else
             gh release create "$TAG" "$DMG" \
-              --title "Claude Usage $VERSION" --generate-notes --target "$GITHUB_SHA"
+              --title "Claude Usage $VERSION" --notes "$BODY" --target "$GITHUB_SHA"
           fi
 
   homebrew:
