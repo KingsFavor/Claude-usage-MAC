@@ -1,6 +1,13 @@
-# Claude Usage
+<p align="center">
+  <img src="assets/logo.png" width="140" alt="Claude Usage 로고">
+</p>
 
-macOS 메뉴 바에서 **Claude 플랜 전체 사용량**(claude.ai 채팅 + Claude Code 통합)을 보여주는 앱입니다.
+<h1 align="center">Claude Usage</h1>
+
+<p align="center">
+  macOS 메뉴 바에서 <b>Claude 플랜 전체 사용량</b>(claude.ai 채팅 + Claude Code 통합)을 보여주는 앱
+</p>
+
 메뉴 바 아이콘을 누르면 `/usage` 패널과 동일한 정보 + 사용량 추이 그래프가 드롭다운으로 열립니다.
 
 ## 기능
