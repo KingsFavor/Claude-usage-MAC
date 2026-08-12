@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppKit
 
 @MainActor
 final class UsageViewModel: ObservableObject {
@@ -52,6 +53,36 @@ final class UsageViewModel: ObservableObject {
         started = true
         Task { await refresh() }
         scheduleTimer()
+        observeWake()
+    }
+
+    // Refresh promptly when the Mac wakes: the repeating Timer is unreliable
+    // across sleep, and right after wake the token may be expired and the
+    // network not yet ready — so refresh now and retry shortly after.
+    private func observeWake() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { await self?.refreshAfterWake() }
+        }
+    }
+
+    private func refreshAfterWake() async {
+        await refresh()
+        // Network stack often lags a few seconds behind wake; try once more.
+        try? await Task.sleep(nanoseconds: 8_000_000_000)
+        await refresh()
+    }
+
+    /// The session is no longer valid (token expired / credentials gone).
+    /// Clear the cached data so the UI actually shows the login state instead
+    /// of freezing on the last fetched numbers.
+    private func markLoggedOut() {
+        needsLogin = true
+        usage = nil
+        plan = nil
+        lastUpdated = nil
+        errorMessage = nil
     }
 
     /// Quietly check GitHub for a newer release, at most once every 6 hours.
@@ -136,13 +167,13 @@ final class UsageViewModel: ObservableObject {
             store.append(snap)
             snapshots = store.snapshots
         } catch UsageServiceError.noCredentials {
-            needsLogin = true
-            errorMessage = nil
+            markLoggedOut()
         } catch UsageServiceError.unauthorized {
             // Token invalid and refresh failed → require re-login.
-            needsLogin = true
-            errorMessage = nil
+            markLoggedOut()
         } catch {
+            // Transient (network) failure: keep the last data but flag it so the
+            // UI can show an "offline" note instead of pretending it's current.
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }

@@ -42,11 +42,13 @@ struct ContentView: View {
                 updateBanner(up)
             }
 
-            if model.needsLogin && model.usage == nil {
+            if model.needsLogin {
                 loginPrompt
             } else if let err = model.errorMessage, model.usage == nil {
                 errorBox(err)
             } else {
+                if model.errorMessage != nil { offlineNote }
+
                 UsageBar(title: "현재 세션",
                          caption: model.usage?.fiveHour?.resetsAt.map(sessionResetText),
                          window: model.usage?.fiveHour)
@@ -162,6 +164,18 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
+    }
+
+    // Shown above the (stale) data when a refresh failed for a transient reason
+    // like no network — so frozen numbers never masquerade as current.
+    private var offlineNote: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "wifi.slash").font(.system(size: 10))
+            Text("연결 문제로 최신화 실패 — 마지막 데이터 표시 중")
+                .font(.system(size: 10))
+        }
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func errorBox(_ msg: String) -> some View {
