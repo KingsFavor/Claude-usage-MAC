@@ -170,9 +170,10 @@ struct ContentView: View {
     // like no network — so frozen numbers never masquerade as current.
     private var offlineNote: some View {
         HStack(spacing: 6) {
-            Image(systemName: "wifi.slash").font(.system(size: 10))
-            Text("연결 문제로 최신화 실패 — 마지막 데이터 표시 중")
+            Image(systemName: "exclamationmark.arrow.triangle.2.circlepath").font(.system(size: 10))
+            Text("최신화를 잠시 못 했어요 — 마지막 데이터 표시 중")
                 .font(.system(size: 10))
+                .lineLimit(1)
         }
         .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,6 +214,8 @@ struct ContentView: View {
                 }
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(.plain)
             .disabled(model.isCheckingForUpdate)
@@ -228,6 +231,8 @@ struct ContentView: View {
                 Text(lastUpdatedText)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Picker("", selection: Binding(
                     get: { model.pollInterval },
                     set: { model.pollInterval = $0 })) {
@@ -244,7 +249,7 @@ struct ContentView: View {
             }
             Spacer()
             Button {
-                Task { await model.refresh() }
+                Task { await model.refresh(force: true) }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }

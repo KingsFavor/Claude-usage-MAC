@@ -3,6 +3,7 @@ import Foundation
 enum UsageServiceError: LocalizedError {
     case noCredentials
     case unauthorized
+    case rateLimited(retryAfter: Int?)
     case http(Int)
     case network(String)
 
@@ -10,6 +11,7 @@ enum UsageServiceError: LocalizedError {
         switch self {
         case .noCredentials:  return "Claude 로그인 정보를 찾을 수 없습니다.\nClaude Code 또는 Claude 앱에 로그인해 주세요."
         case .unauthorized:   return "인증이 만료되었습니다.\nClaude Code에서 다시 로그인해 주세요."
+        case .rateLimited:    return "요청이 많아 잠시 제한되었습니다."
         case .http(let code): return "서버 오류 (HTTP \(code))"
         case .network(let m): return "네트워크 오류: \(m)"
         }
@@ -40,12 +42,17 @@ struct UsageService {
         do {
             return try await getUsage(token: creds.accessToken)
         } catch UsageServiceError.unauthorized {
-            // One reactive refresh attempt on 401/403.
-            if let refreshed = try? await refresh(creds) {
+            // One reactive refresh attempt on 401/403. A rate-limited refresh
+            // must surface as rateLimited (back off) — not as a logout.
+            do {
+                let refreshed = try await refresh(creds)
                 KeychainAuth.save(refreshed, source: source)
                 return try await getUsage(token: refreshed.accessToken)
+            } catch let UsageServiceError.rateLimited(retryAfter) {
+                throw UsageServiceError.rateLimited(retryAfter: retryAfter)
+            } catch {
+                throw UsageServiceError.unauthorized
             }
-            throw UsageServiceError.unauthorized
         }
     }
 
@@ -74,6 +81,9 @@ struct UsageService {
             catch { throw UsageServiceError.network("응답 해석 실패") }
         case 401, 403:
             throw UsageServiceError.unauthorized
+        case 429:
+            let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) }
+            throw UsageServiceError.rateLimited(retryAfter: retryAfter)
         default:
             throw UsageServiceError.http(http.statusCode)
         }
@@ -92,7 +102,12 @@ struct UsageService {
         ])
 
         let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+        let http = resp as? HTTPURLResponse
+        if http?.statusCode == 429 {
+            let ra = http?.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) }
+            throw UsageServiceError.rateLimited(retryAfter: ra)
+        }
+        guard http?.statusCode == 200 else {
             throw UsageServiceError.unauthorized
         }
         struct TokenResp: Decodable {

@@ -22,6 +22,12 @@ final class UsageViewModel: ObservableObject {
     private var timer: Timer?
     private var started = false
 
+    // Rate-limit backoff: after a 429 we hold off automatic fetches until
+    // `nextAllowedFetch`, growing the delay each time. A forced (user-initiated)
+    // refresh ignores the gate.
+    private var backoffStep = 0
+    private var nextAllowedFetch: Date?
+
     // Marketing version of the running build. nil when launched as a bare
     // binary (dev), in which case we skip update checks entirely.
     private var appVersion: String? {
@@ -154,7 +160,9 @@ final class UsageViewModel: ObservableObject {
             KeychainAuth.saveAppCreds(creds)
             needsLogin = false
             errorMessage = nil
-            await refresh()
+            backoffStep = 0
+            nextAllowedFetch = nil
+            await refresh(force: true)
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -178,9 +186,11 @@ final class UsageViewModel: ObservableObject {
         }
     }
 
-    func refresh() async {
+    func refresh(force: Bool = false) async {
         checkForUpdatesIfDue()  // throttled to once / 6h; independent of login
         guard !needsLogin else { return }
+        // Respect rate-limit backoff for automatic polls; a user tap forces through.
+        if !force, let next = nextAllowedFetch, Date() < next { return }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -189,6 +199,8 @@ final class UsageViewModel: ObservableObject {
             errorMessage = nil
             needsLogin = false
             lastUpdated = Date()
+            nextAllowedFetch = nil
+            backoffStep = 0
             if let p = KeychainAuth.load()?.creds.subscriptionType { plan = p }
 
             let snap = Snapshot(
@@ -204,10 +216,22 @@ final class UsageViewModel: ObservableObject {
         } catch UsageServiceError.unauthorized {
             // Token invalid and refresh failed → require re-login.
             markLoggedOut()
+        } catch let UsageServiceError.rateLimited(retryAfter) {
+            applyBackoff(retryAfter: retryAfter)
         } catch {
             // Transient (network) failure: keep the last data but flag it so the
             // UI can show an "offline" note instead of pretending it's current.
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    // Rate limited (429): hold off automatic fetches and grow the delay so we
+    // stop hammering the endpoint. Keep any last data on screen.
+    private func applyBackoff(retryAfter: Int?) {
+        let base = retryAfter ?? min(1800, 60 * (1 << min(backoffStep, 5)))  // 60s → … → 1800s
+        backoffStep = min(backoffStep + 1, 5)
+        nextAllowedFetch = Date().addingTimeInterval(Double(base))
+        let mins = max(1, Int(ceil(Double(base) / 60)))
+        errorMessage = "요청이 많아 잠시 제한되었습니다.\n약 \(mins)분 후 자동으로 다시 시도합니다. (새로고침으로 즉시 재시도)"
     }
 }
