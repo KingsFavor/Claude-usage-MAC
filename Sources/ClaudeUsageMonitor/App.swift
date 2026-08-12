@@ -38,6 +38,10 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
+            if let up = model.availableUpdate {
+                updateBanner(up)
+            }
+
             if model.needsLogin && model.usage == nil {
                 loginPrompt
             } else if let err = model.errorMessage, model.usage == nil {
@@ -86,6 +90,40 @@ struct ContentView: View {
                 ProgressView().controlSize(.small)
             }
         }
+    }
+
+    // Subtle, dismissible "update available" banner — shown only when a newer
+    // release exists. No modal, no system notification; opens Releases on tap.
+    private func updateBanner(_ up: UpdateInfo) -> some View {
+        let clay = Color(red: 0.851, green: 0.459, blue: 0.337)
+        return HStack(spacing: 8) {
+            Image(systemName: "arrow.down.circle.fill")
+                .foregroundStyle(clay)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("새 버전 \(up.version) 사용 가능")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("클릭하면 다운로드 페이지가 열립니다")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("업데이트") { NSWorkspace.shared.open(up.url) }
+                .buttonStyle(.borderless)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(clay)
+            Button {
+                model.dismissUpdate()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("이 버전 알림 숨기기")
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(clay.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var loginPrompt: some View {

@@ -25,6 +25,15 @@ brew install --cask kingsfavor/tap/claude-usage
 2. 안내(화살표)대로 **`Claude Usage` 아이콘을 `Applications` 폴더로 드래그**합니다.
 3. Launchpad 또는 응용 프로그램 폴더에서 실행합니다. 앱은 Apple **공증(notarization)** 을 받았으므로 경고 없이 바로 실행됩니다.
 
+## 업데이트
+새 버전이 나오면 앱이 **드롭다운 안에 은은한 배너**("새 버전 x.y.z 사용 가능")로 알려줍니다.
+방해되는 팝업·시스템 알림은 없으며, 배너의 **×** 로 그 버전 알림을 끌 수 있습니다.
+(GitHub 릴리즈를 최대 6시간에 한 번만 조용히 확인합니다.)
+
+실제 업데이트 방법:
+- **Homebrew**: `brew upgrade --cask claude-usage`
+- **DMG**: 배너의 **업데이트** 버튼(또는 [Releases](https://github.com/KingsFavor/Claude-usage-MAC/releases/latest))에서 최신 DMG를 받아 다시 드래그 설치
+
 ## 사용 & 로그인
 메뉴 바에 아이콘이 생기면 클릭 → **"Claude로 로그인"** → 브라우저에서 Claude 계정을 승인하면 사용량이 표시됩니다.
 

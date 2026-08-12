@@ -11,11 +11,20 @@ final class UsageViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var needsLogin = false
     @Published var isLoggingIn = false
+    @Published var availableUpdate: UpdateInfo?
 
     private let service = UsageService()
     private let store = SnapshotStore()
+    private let updateChecker = UpdateChecker()
     private var timer: Timer?
     private var started = false
+
+    // Marketing version of the running build. nil when launched as a bare
+    // binary (dev), in which case we skip update checks entirely.
+    private var appVersion: String? {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        return (v?.isEmpty ?? true) ? nil : v
+    }
 
     // Poll interval in seconds (persisted). Clamped to a sane range.
     var pollInterval: Double {
@@ -43,6 +52,34 @@ final class UsageViewModel: ObservableObject {
         started = true
         Task { await refresh() }
         scheduleTimer()
+    }
+
+    /// Quietly check GitHub for a newer release, at most once every 6 hours.
+    /// Surfaces `availableUpdate` for a dismissible in-panel banner — no
+    /// notifications, no dialogs, no auto-download.
+    func checkForUpdatesIfDue(force: Bool = false) {
+        guard let current = appVersion else { return }  // dev binary → skip
+        let key = "lastUpdateCheckAt"
+        let now = Date().timeIntervalSince1970
+        let last = UserDefaults.standard.double(forKey: key)
+        if !force, last != 0, now - last < 6 * 3600 { return }
+
+        Task {
+            let info = await updateChecker.check(currentVersion: current)
+            UserDefaults.standard.set(now, forKey: key)
+            guard let info else { return }
+            // Respect a user who dismissed this exact version.
+            if UserDefaults.standard.string(forKey: "dismissedUpdateVersion") == info.version { return }
+            availableUpdate = info
+        }
+    }
+
+    /// Hide the banner and remember not to nag about this version again.
+    func dismissUpdate() {
+        if let v = availableUpdate?.version {
+            UserDefaults.standard.set(v, forKey: "dismissedUpdateVersion")
+        }
+        availableUpdate = nil
     }
 
     func login() async {
@@ -78,6 +115,7 @@ final class UsageViewModel: ObservableObject {
     }
 
     func refresh() async {
+        checkForUpdatesIfDue()  // throttled to once / 6h; independent of login
         guard !needsLogin else { return }
         isLoading = true
         defer { isLoading = false }
