@@ -95,37 +95,64 @@ struct ContentView: View {
     }
 
     // Subtle, dismissible "update available" banner — shown only when a newer
-    // release exists. No modal, no system notification; opens Releases on tap.
+    // release exists. No modal, no system notification. Offers a copyable
+    // Homebrew command and a link to the release (DMG) for non-brew users.
     private func updateBanner(_ up: UpdateInfo) -> some View {
         let clay = Color(red: 0.851, green: 0.459, blue: 0.337)
-        return HStack(spacing: 8) {
-            Image(systemName: "arrow.down.circle.fill")
-                .foregroundStyle(clay)
-            VStack(alignment: .leading, spacing: 1) {
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundStyle(clay)
                 Text("새 버전 \(up.version) 사용 가능")
                     .font(.system(size: 12, weight: .semibold))
-                Text("클릭하면 다운로드 페이지가 열립니다")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("업데이트") { NSWorkspace.shared.open(up.url) }
+                Spacer()
+                Button {
+                    model.dismissUpdate()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
                 .buttonStyle(.borderless)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(clay)
-            Button {
-                model.dismissUpdate()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.secondary)
+                .help("이 버전 알림 숨기기")
             }
-            .buttonStyle(.borderless)
-            .help("이 버전 알림 숨기기")
+
+            // Homebrew command + copy button.
+            HStack(spacing: 6) {
+                Text(model.updateCommand)
+                    .font(.system(size: 10, design: .monospaced))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.primary.opacity(0.06),
+                                in: RoundedRectangle(cornerRadius: 5))
+                Button {
+                    model.copyUpdateCommand()
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: model.commandCopied ? "checkmark" : "doc.on.doc")
+                        Text(model.commandCopied ? "복사됨" : "복사")
+                    }
+                    .font(.system(size: 10, weight: .medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Homebrew 업데이트 명령 복사")
+            }
+
+            Button { NSWorkspace.shared.open(up.url) } label: {
+                Text("또는 릴리즈에서 DMG 받기")
+                    .font(.system(size: 10))
+                    .foregroundStyle(clay)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
         .background(clay.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+        .animation(.default, value: model.commandCopied)
     }
 
     private var loginPrompt: some View {
@@ -236,10 +263,10 @@ struct ContentView: View {
                 Picker("", selection: Binding(
                     get: { model.pollInterval },
                     set: { model.pollInterval = $0 })) {
-                    Text("30초").tag(30.0)
-                    Text("60초").tag(60.0)
-                    Text("120초").tag(120.0)
-                    Text("300초").tag(300.0)
+                    Text("1분").tag(60.0)
+                    Text("5분").tag(300.0)
+                    Text("15분").tag(900.0)
+                    Text("30분").tag(1800.0)
                 }
                 .labelsHidden()
                 .font(.system(size: 10))

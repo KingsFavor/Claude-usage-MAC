@@ -39,16 +39,32 @@ final class UsageViewModel: ObservableObject {
     var displayVersion: String? { appVersion }
 
     // Poll interval in seconds (persisted). Clamped to a sane range.
+    // Default 5 min: the usage windows (5h / weekly) change slowly, and frequent
+    // polling of api.anthropic.com trips Cloudflare's per-IP rate limit (429).
     var pollInterval: Double {
         get {
             let v = UserDefaults.standard.double(forKey: "pollIntervalSeconds")
-            return v == 0 ? 60 : v
+            return v == 0 ? 300 : min(max(v, 60), 1800)  // clamp legacy/aggressive values
         }
         set {
-            let clamped = min(max(newValue, 15), 600)
+            let clamped = min(max(newValue, 60), 1800)
             UserDefaults.standard.set(clamped, forKey: "pollIntervalSeconds")
             objectWillChange.send()
             scheduleTimer()
+        }
+    }
+
+    // Command a user can copy to update via Homebrew (includes `brew update`).
+    let updateCommand = "brew update && brew upgrade --cask claude-usage"
+    @Published var commandCopied = false
+
+    func copyUpdateCommand() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(updateCommand, forType: .string)
+        commandCopied = true
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            commandCopied = false
         }
     }
 
