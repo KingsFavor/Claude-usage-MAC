@@ -126,14 +126,14 @@ jobs:
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
           TAG="v${VERSION}"
-          # Ensure a tag exists for workflow_dispatch runs.
-          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" "dist/Claude-Usage-${VERSION}.dmg" \
-              --title "Claude Usage $VERSION" --generate-notes --target "$GITHUB_SHA"
+          DMG="dist/Claude-Usage-${VERSION}.dmg"
+          # Idempotent: replace the asset if the release exists, else create it.
+          # (Checkout doesn't fetch tags, so probe the release via gh, not git.)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DMG" --clobber
           else
-            gh release create "$TAG" "dist/Claude-Usage-${VERSION}.dmg" \
-              --title "Claude Usage $VERSION" --generate-notes || \
-            gh release upload "$TAG" "dist/Claude-Usage-${VERSION}.dmg" --clobber
+            gh release create "$TAG" "$DMG" \
+              --title "Claude Usage $VERSION" --generate-notes --target "$GITHUB_SHA"
           fi
 
   homebrew:
