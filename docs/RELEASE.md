@@ -63,13 +63,5 @@ brew upgrade --cask claude-usage
 
 ## Local build
 
-`packaging/build.sh` still works on a laptop. It notarizes automatically when a
-`notarytool` keychain profile named `claude-usage` exists:
-
-```bash
-xcrun notarytool store-credentials claude-usage \
-  --apple-id "<APPLE_ID>" --team-id 4S9VPFZ465
-./packaging/build.sh
-```
-
-Override behavior with `VERSION=1.2.3 NOTARIZE=0 ./packaging/build.sh`.
+For building, packaging, and notarizing on a laptop (without CI), see
+[DEVELOPMENT.md](DEVELOPMENT.md).
