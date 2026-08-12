@@ -62,14 +62,27 @@ brew install --cask kingsfavor/tap/claude-usage
 - 추이 그래프용 시계열은 **로컬에만** 저장됩니다: `~/Library/Application Support/ClaudeUsageMonitor/snapshots.json` (최근 30일 보관). 외부로 전송하지 않습니다.
 
 ## 제거
-- Homebrew: `brew uninstall --cask claude-usage`
-- 수동: `Applications`에서 `Claude Usage.app`을 휴지통으로 이동.
 
-저장 데이터까지 지우려면:
+### Homebrew로 설치한 경우
 ```bash
-rm -rf ~/Library/Application\ Support/ClaudeUsageMonitor          # 추이 그래프 스냅샷
+brew uninstall --cask claude-usage         # 앱만 삭제
+brew uninstall --zap --cask claude-usage   # 앱 + 설정·추이 그래프 데이터까지 완전 삭제
+```
+`--zap`은 설정(preferences)과 추이 그래프 스냅샷(`~/Library/Application Support/ClaudeUsageMonitor`)까지 함께 지웁니다.
+
+### 수동(DMG)으로 설치한 경우
+`Applications`에서 `Claude Usage.app`을 휴지통으로 이동.
+
+### 로그인 토큰까지 정리 (선택)
+로그인 토큰은 키체인에 있어 `--zap`으로도 지워지지 않습니다. 완전히 지우려면:
+```bash
 security delete-generic-password -s "ClaudeUsageMonitor-credentials"  # 앱 로그인 토큰
 ```
+> `--zap` 없이 지웠거나 수동 설치했다면, 남은 데이터도 함께 정리하세요:
+> ```bash
+> rm -rf ~/Library/Application\ Support/ClaudeUsageMonitor      # 추이 그래프 스냅샷
+> defaults delete com.kwonwoo.claude-usage-monitor 2>/dev/null  # 앱 설정
+> ```
 
 ## 개발자 · 기여
 빌드·패키징·릴리즈 문서는 `docs/`에 있습니다:
