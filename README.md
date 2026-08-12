@@ -41,8 +41,9 @@ brew install --cask kingsfavor/tap/claude-usage
 새 버전이 있으면 위 배너가, 없으면 잠깐 "최신 버전이에요" 표시가 뜹니다.
 
 실제 업데이트 방법:
-- **Homebrew**: `brew upgrade --cask claude-usage`
-- **DMG**: 배너의 **업데이트** 버튼(또는 [Releases](https://github.com/KingsFavor/Claude-usage-MAC/releases/latest))에서 최신 DMG를 받아 다시 드래그 설치
+- **Homebrew**: `brew update && brew upgrade --cask claude-usage` (배너에서 명령어 복사 가능)
+  - 업데이트가 설치되면 앱이 **자동으로 새 버전으로 재시작**됩니다. 메뉴바 아이콘이 잠깐 사라졌다 다시 나타나면 완료입니다.
+- **DMG**: 배너의 **DMG 받기** 링크(또는 [Releases](https://github.com/KingsFavor/Claude-usage-MAC/releases/latest))에서 최신 DMG를 받아 다시 드래그 설치
 
 ## 사용 & 로그인
 메뉴 바에 아이콘이 생기면 클릭 → **"Claude로 로그인"** → 브라우저에서 Claude 계정을 승인하면 사용량이 표시됩니다.

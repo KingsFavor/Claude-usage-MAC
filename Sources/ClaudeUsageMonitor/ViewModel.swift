@@ -73,6 +73,9 @@ final class UsageViewModel: ObservableObject {
         let loaded = KeychainAuth.load()
         plan = loaded?.creds.subscriptionType
         needsLogin = (loaded == nil)
+        // Watch for in-place updates from app launch — independent of whether
+        // the user ever opens the menu (start() only runs on first open).
+        scheduleUpdateWatch()
     }
 
     func start() {
@@ -95,10 +98,49 @@ final class UsageViewModel: ObservableObject {
     }
 
     private func refreshAfterWake() async {
+        relaunchIfUpdated()  // may have been upgraded (brew) while asleep
         await refresh()
         // Network stack often lags a few seconds behind wake; try once more.
         try? await Task.sleep(nanoseconds: 8_000_000_000)
         await refresh()
+    }
+
+    // MARK: - Auto-restart after an in-place update (e.g. `brew upgrade --cask`)
+    // Homebrew replaces the .app bundle underneath the running process, so the
+    // old version keeps running until relaunched. Watch the on-disk bundle
+    // version; when it no longer matches the running one, relaunch into it.
+
+    private let launchVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    private var updateWatchTimer: Timer?
+    private var relaunching = false
+
+    private func scheduleUpdateWatch() {
+        guard launchVersion != nil else { return }  // dev binary → skip
+        updateWatchTimer?.invalidate()
+        updateWatchTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { await self?.relaunchIfUpdated() }
+        }
+    }
+
+    private func relaunchIfUpdated() {
+        // Don't yank the app mid-login (would kill the OAuth loopback server).
+        guard !relaunching, !isLoggingIn, let launchVersion else { return }
+        let plistPath = Bundle.main.bundlePath + "/Contents/Info.plist"
+        guard let dict = NSDictionary(contentsOfFile: plistPath),
+              let onDisk = dict["CFBundleShortVersionString"] as? String,
+              !onDisk.isEmpty, onDisk != launchVersion else { return }
+
+        relaunching = true
+        // Relaunch the (now-updated) bundle, but only once THIS process has
+        // fully exited — otherwise `open` just reactivates the dying instance
+        // and no new one launches.
+        let path = Bundle.main.bundlePath
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/bin/sh")
+        proc.arguments = ["-c", "while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done; open \"\(path)\""]
+        try? proc.run()
+        NSApp.terminate(nil)
     }
 
     /// The session is no longer valid (token expired / credentials gone).
