@@ -308,7 +308,11 @@ struct ContentView: View {
         let secs = Int(Date().timeIntervalSince(d))
         if secs < 5 { return "마지막 업데이트: 방금" }
         if secs < 60 { return "마지막 업데이트: \(secs)초 전" }
-        return "마지막 업데이트: \(secs / 60)분 전"
+        let mins = secs / 60
+        if mins < 60 { return "마지막 업데이트: \(mins)분 전" }
+        let h = mins / 60, m = mins % 60
+        return m == 0 ? "마지막 업데이트: \(h)시간 전"
+                      : "마지막 업데이트: \(h)시간 \(m)분 전"
     }
 }
 
