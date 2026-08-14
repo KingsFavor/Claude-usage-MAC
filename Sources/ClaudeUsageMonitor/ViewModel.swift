@@ -68,7 +68,19 @@ final class UsageViewModel: ObservableObject {
         }
     }
 
+    // Launch-at-login (macOS login item). Reflects the live SMAppService status.
+    @Published var launchAtLogin = LoginItem.isEnabled
+    var launchAtLoginSupported: Bool { LoginItem.isSupported }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        LoginItem.setEnabled(enabled)
+        launchAtLogin = LoginItem.isEnabled  // re-read: reflects actual state on failure
+    }
+
     init() {
+        // Register as a login item on first run so the app starts at boot.
+        LoginItem.enableOnFirstRunIfNeeded()
+        launchAtLogin = LoginItem.isEnabled  // reflect any first-run registration
         snapshots = store.snapshots
         let loaded = KeychainAuth.load()
         plan = loaded?.creds.subscriptionType

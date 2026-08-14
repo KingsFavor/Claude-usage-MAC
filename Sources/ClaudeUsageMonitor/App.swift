@@ -272,6 +272,18 @@ struct ContentView: View {
                 .font(.system(size: 10))
                 .frame(width: 92)
 
+                if model.launchAtLoginSupported {
+                    Toggle(isOn: Binding(
+                        get: { model.launchAtLogin },
+                        set: { model.setLaunchAtLogin($0) })) {
+                        Text("로그인 시 자동 실행")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                    .controlSize(.small)
+                }
+
                 updateCheckLink
             }
             Spacer()
