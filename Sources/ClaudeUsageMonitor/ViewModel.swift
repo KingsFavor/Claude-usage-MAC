@@ -82,12 +82,13 @@ final class UsageViewModel: ObservableObject {
         LoginItem.enableOnFirstRunIfNeeded()
         launchAtLogin = LoginItem.isEnabled  // reflect any first-run registration
         snapshots = store.snapshots
-        let loaded = KeychainAuth.load()
+        let loaded = try? KeychainAuth.load()
         plan = loaded?.creds.subscriptionType
         needsLogin = (loaded == nil)
-        // Watch for in-place updates from app launch — independent of whether
-        // the user ever opens the menu (start() only runs on first open).
+        // Watch for in-place updates from app launch.
         scheduleUpdateWatch()
+        // Poll from launch so the menu bar shows usage without opening the panel.
+        start()
     }
 
     func start() {
@@ -96,6 +97,12 @@ final class UsageViewModel: ObservableObject {
         Task { await refresh() }
         scheduleTimer()
         observeWake()
+    }
+
+    /// The dropdown panel was opened. If it would show the login prompt,
+    /// re-check first: the credentials may be readable again by now.
+    func panelOpened() {
+        if needsLogin { Task { await refresh(recheckLogin: true) } }
     }
 
     // Refresh promptly when the Mac wakes: the repeating Timer is unreliable
@@ -111,10 +118,10 @@ final class UsageViewModel: ObservableObject {
 
     private func refreshAfterWake() async {
         relaunchIfUpdated()  // may have been upgraded (brew) while asleep
-        await refresh()
+        await refresh(recheckLogin: true)
         // Network stack often lags a few seconds behind wake; try once more.
         try? await Task.sleep(nanoseconds: 8_000_000_000)
-        await refresh()
+        await refresh(recheckLogin: true)
     }
 
     // MARK: - Auto-restart after an in-place update (e.g. `brew upgrade --cask`)
@@ -225,6 +232,10 @@ final class UsageViewModel: ObservableObject {
     func login() async {
         isLoggingIn = true
         defer { isLoggingIn = false }
+        // Usually the credentials are still in the keychain (e.g. Claude Code
+        // refreshed them) — use them instead of sending the user to the browser.
+        await refresh(force: true)
+        guard needsLogin else { return }
         do {
             let creds = try await OAuthLogin().run()
             KeychainAuth.saveAppCreds(creds)
@@ -245,7 +256,7 @@ final class UsageViewModel: ObservableObject {
         lastUpdated = nil
         errorMessage = nil
         // Fall back to Claude Code creds if present; else require login.
-        needsLogin = (KeychainAuth.load() == nil)
+        needsLogin = ((try? KeychainAuth.load()) == nil)
         if !needsLogin { Task { await refresh() } }
     }
 
@@ -256,22 +267,25 @@ final class UsageViewModel: ObservableObject {
         }
     }
 
-    func refresh(force: Bool = false) async {
+    /// `recheckLogin` lets a non-forced refresh (wake, opening the panel) leave
+    /// the logged-out state. Plain timer polls don't, so a denied keychain
+    /// prompt isn't raised again every few minutes.
+    func refresh(force: Bool = false, recheckLogin: Bool = false) async {
         checkForUpdatesIfDue()  // throttled to once / 6h; independent of login
-        guard !needsLogin else { return }
+        guard !needsLogin || force || recheckLogin else { return }
         // Respect rate-limit backoff for automatic polls; a user tap forces through.
         if !force, let next = nextAllowedFetch, Date() < next { return }
         isLoading = true
         defer { isLoading = false }
         do {
-            let u = try await service.fetchUsage()
+            let (u, p) = try await service.fetchUsage()
             usage = u
             errorMessage = nil
             needsLogin = false
             lastUpdated = Date()
             nextAllowedFetch = nil
             backoffStep = 0
-            if let p = KeychainAuth.load()?.creds.subscriptionType { plan = p }
+            if let p { plan = p }
 
             let snap = Snapshot(
                 timestamp: Date(),
@@ -287,10 +301,13 @@ final class UsageViewModel: ObservableObject {
             // Token invalid and refresh failed → require re-login.
             markLoggedOut()
         } catch let UsageServiceError.rateLimited(retryAfter) {
+            needsLogin = false  // credentials exist; we're just throttled
             applyBackoff(retryAfter: retryAfter)
         } catch {
-            // Transient (network) failure: keep the last data but flag it so the
-            // UI can show an "offline" note instead of pretending it's current.
+            // Transient (network / keychain) failure: keep the last data but flag
+            // it so the UI can show an "offline" note instead of pretending it's
+            // current. Credentials weren't rejected, so this isn't a logout.
+            needsLogin = false
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }

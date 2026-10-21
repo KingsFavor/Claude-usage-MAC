@@ -9,7 +9,7 @@ struct ClaudeUsageMonitorApp: App {
         MenuBarExtra {
             ContentView()
                 .environmentObject(model)
-                .onAppear { model.start() }
+                .onAppear { model.panelOpened() }
         } label: {
             MenuBarLabel(model: model)
         }

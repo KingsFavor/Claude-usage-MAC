@@ -24,35 +24,47 @@ struct UsageService {
     static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     static let tokenURL = URL(string: "https://console.anthropic.com/v1/oauth/token")!
 
-    func fetchUsage() async throws -> UsageResponse {
-        guard let loaded = KeychainAuth.load() else { throw UsageServiceError.noCredentials }
-        var creds = loaded.creds
-        let source = loaded.source
-
-        // Proactively refresh if the access token is expired (or about to be).
-        if let exp = creds.expiresAt {
-            let expDate = Date(timeIntervalSince1970: exp / 1000.0)
-            if expDate <= Date().addingTimeInterval(60),
-               let refreshed = try? await refresh(creds) {
-                creds = refreshed
-                KeychainAuth.save(refreshed, source: source)
+    /// Returns the usage plus the plan (subscription type) of the credentials used.
+    func fetchUsage() async throws -> (usage: UsageResponse, plan: String?) {
+        var loaded = try loadCreds()
+        // The keychain item is shared with Claude Code, which rotates these
+        // tokens on its own (and a concurrent refresh rotates them too). So a
+        // rejected token/refresh is retried once against a fresh keychain read
+        // before it counts as logged out.
+        do {
+            return (try await fetch(with: loaded), loaded.creds.subscriptionType)
+        } catch UsageServiceError.unauthorized {
+            let latest = try loadCreds()
+            guard latest.creds.accessToken != loaded.creds.accessToken
+                    || latest.creds.refreshToken != loaded.creds.refreshToken else {
+                throw UsageServiceError.unauthorized
             }
+            loaded = latest
+            return (try await fetch(with: loaded), loaded.creds.subscriptionType)
         }
+    }
 
+    private func loadCreds() throws -> LoadedCreds {
+        guard let loaded = try KeychainAuth.load() else { throw UsageServiceError.noCredentials }
+        return loaded
+    }
+
+    // One pass with the given credentials: refresh first if expired, then on a
+    // 401/403 refresh once and retry. Refresh errors propagate as-is, so only a
+    // rejected refresh token (not a dropped network after wake) is .unauthorized.
+    private func fetch(with loaded: LoadedCreds) async throws -> UsageResponse {
+        var creds = loaded.creds
+        if let exp = creds.expiresAt,
+           Date(timeIntervalSince1970: exp / 1000.0) <= Date().addingTimeInterval(60) {
+            creds = try await refresh(creds)
+            KeychainAuth.save(creds, source: loaded.source)
+        }
         do {
             return try await getUsage(token: creds.accessToken)
         } catch UsageServiceError.unauthorized {
-            // One reactive refresh attempt on 401/403. A rate-limited refresh
-            // must surface as rateLimited (back off) — not as a logout.
-            do {
-                let refreshed = try await refresh(creds)
-                KeychainAuth.save(refreshed, source: source)
-                return try await getUsage(token: refreshed.accessToken)
-            } catch let UsageServiceError.rateLimited(retryAfter) {
-                throw UsageServiceError.rateLimited(retryAfter: retryAfter)
-            } catch {
-                throw UsageServiceError.unauthorized
-            }
+            let refreshed = try await refresh(creds)
+            KeychainAuth.save(refreshed, source: loaded.source)
+            return try await getUsage(token: refreshed.accessToken)
         }
     }
 
@@ -101,21 +113,35 @@ struct UsageService {
             "client_id": Self.clientID
         ])
 
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        let http = resp as? HTTPURLResponse
-        if http?.statusCode == 429 {
-            let ra = http?.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) }
-            throw UsageServiceError.rateLimited(retryAfter: ra)
+        let data: Data
+        let resp: URLResponse
+        do {
+            (data, resp) = try await URLSession.shared.data(for: req)
+        } catch {
+            throw UsageServiceError.network(error.localizedDescription)
         }
-        guard http?.statusCode == 200 else {
+        guard let http = resp as? HTTPURLResponse else {
+            throw UsageServiceError.network("잘못된 응답")
+        }
+        switch http.statusCode {
+        case 200:
+            break
+        case 400, 401, 403:  // invalid_grant etc.: the refresh token itself was rejected
             throw UsageServiceError.unauthorized
+        case 429:
+            let ra = http.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) }
+            throw UsageServiceError.rateLimited(retryAfter: ra)
+        default:
+            throw UsageServiceError.http(http.statusCode)
         }
         struct TokenResp: Decodable {
             let access_token: String
             let refresh_token: String?
             let expires_in: Double?
         }
-        let t = try JSONDecoder().decode(TokenResp.self, from: data)
+        guard let t = try? JSONDecoder().decode(TokenResp.self, from: data) else {
+            throw UsageServiceError.network("응답 해석 실패")
+        }
         var updated = creds
         updated.accessToken = t.access_token
         if let r = t.refresh_token { updated.refreshToken = r }
