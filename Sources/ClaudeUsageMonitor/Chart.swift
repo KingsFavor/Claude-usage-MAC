@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 enum BurstWindow: String, CaseIterable, Identifiable {
-    case session = "세션(5h)"
+    case session = "세션"
     case week = "주간"
     var id: String { rawValue }
 }
@@ -103,6 +103,7 @@ struct BurstChartView: View {
     @State private var window: BurstWindow = .session
     @State private var granularity: BurstGranularity = .minute
     @State private var metric: BurstMetric = .level
+    @Environment(\.theme) private var theme
 
     private var points: [ChartPoint] {
         BurstAggregator.points(snapshots: snapshots, window: window,
@@ -116,73 +117,72 @@ struct BurstChartView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("사용량 추이")
-                .font(.system(size: 13, weight: .semibold))
-
-            Picker("", selection: $granularity) {
-                ForEach(BurstGranularity.allCases) { Text($0.rawValue).tag($0) }
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel(title: "사용량 추이") {
+                Segmented(options: BurstGranularity.allCases.map { ($0, $0.rawValue) },
+                          selection: $granularity)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
 
-            HStack(spacing: 8) {
-                Picker("", selection: $window) {
-                    ForEach(BurstWindow.allCases) { Text($0.rawValue).tag($0) }
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Segmented(options: BurstWindow.allCases.map { ($0, $0.rawValue) },
+                              selection: $window)
+                    Spacer(minLength: 0)
+                    Segmented(options: BurstMetric.allCases.map { ($0, $0.rawValue) },
+                              selection: $metric)
                 }
-                .labelsHidden()
-                Picker("", selection: $metric) {
-                    ForEach(BurstMetric.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .labelsHidden()
+                chart
             }
-            .font(.system(size: 11))
-
-            chart
+            .card()
         }
     }
 
     @ViewBuilder private var chart: some View {
         if points.count < 2 {
-            VStack(spacing: 6) {
+            VStack(spacing: 7) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 22))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(theme.textFaint)
                 Text("데이터 수집 중…\n폴링이 쌓이면 추이가 표시됩니다.")
-                    .font(.caption)
+                    .font(.system(size: 11, weight: .medium))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textMuted)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 130)
+            .frame(height: 124)
         } else {
             Chart(points) { p in
                 AreaMark(x: .value("시간", p.time), y: .value("값", p.value))
                     .foregroundStyle(.linearGradient(
-                        colors: [.blue.opacity(0.35), .blue.opacity(0.02)],
+                        colors: [theme.ink.opacity(0.14), theme.ink.opacity(0.0)],
                         startPoint: .top, endPoint: .bottom))
+                    .interpolationMethod(.monotone)
                 LineMark(x: .value("시간", p.time), y: .value("값", p.value))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(theme.ink)
+                    .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.monotone)
             }
             .chartYScale(domain: yDomain)
             .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                    AxisGridLine()
+                AxisMarks(values: .automatic(desiredCount: 4)) { _ in
                     AxisValueLabel(format: granularity.axisFormat)
+                        .font(.system(size: 9.5, weight: .medium))
+                        .foregroundStyle(theme.textMuted)
                 }
             }
             .chartYAxis {
-                AxisMarks(position: .leading) { value in
-                    AxisGridLine()
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6, dash: [2, 3])).foregroundStyle(theme.divider)
                     AxisValueLabel {
                         if let d = value.as(Double.self) {
                             Text(metric == .level ? "\(Int(d))%" : "\(Int(d))")
+                                .font(.system(size: 9.5, weight: .medium))
+                                .foregroundStyle(theme.textMuted)
                         }
                     }
                 }
             }
-            .frame(height: 130)
+            .frame(height: 124)
         }
     }
 }
