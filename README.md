@@ -52,7 +52,10 @@ brew install --cask kingsfavor/tap/claude-usage
 1. **앱 내 로그인** — 드롭다운의 **"Claude로 로그인"** 버튼으로 브라우저에서 Claude 계정을 승인(OAuth PKCE)합니다. 토큰은 앱 전용 키체인 항목(`ClaudeUsageMonitor-credentials`)에 저장되며, **Claude Code 없이도 단독으로 동작합니다.**
 2. **Claude Code 토큰 폴백** — 앱 로그인이 없으면 이미 로그인된 Claude Code의 토큰을 재사용합니다.
 
-푸터의 로그아웃 버튼으로 앱 토큰을 삭제할 수 있습니다.
+드롭다운 상단에 **현재 로그인한 계정**(이메일 · 이름 · 조직 · 로그인 방식)이 표시됩니다.
+옆의 **로그아웃** 버튼을 누르면 앱 토큰을 지우고, Claude Code 토큰 폴백도 중단해 확실히 로그아웃됩니다
+(Claude Code 자체의 로그인은 건드리지 않습니다). 다시 로그인할 때는 브라우저 로그인 또는
+**"Claude Code에 로그인된 계정 사용"** 중에서 고를 수 있습니다.
 
 > **메뉴 바에서 항상 실행되게 하려면**: 시스템 설정 → 일반 → 로그인 항목 → `+`로 `Claude Usage` 추가.
 >

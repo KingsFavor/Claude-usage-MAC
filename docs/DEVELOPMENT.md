@@ -13,6 +13,11 @@ swift build -c release                # 컴파일만
 .build/release/ClaudeUsageMonitor     # 번들 없이 메뉴 바에서 바로 실행 (테스트용)
 ```
 
+> **개발 버전 정리**: 테스트하려고 개발 빌드를 이 Mac에 설치·실행했다면(`/Applications`·`~/Applications`에
+> 복사, `open dist/…app`, 로그인 항목 등록 등) 작업이 끝나면 **반드시 종료하고 지우세요.** Homebrew/DMG로
+> 설치한 정식 앱과 같은 번들 ID·설정·키체인을 쓰기 때문에 메뉴 바 아이콘 중복, 로그인 항목 충돌,
+> 자동 재시작 오작동이 생길 수 있습니다. 정식 앱은 `brew reinstall --cask claude-usage`로 복구합니다.
+
 ## 전체 패키징 (앱 번들 + 서명 + 공증 + DMG)
 ```bash
 bash packaging/build.sh

@@ -15,6 +15,9 @@ final class UsageViewModel: ObservableObject {
     @Published var availableUpdate: UpdateInfo?
     @Published var isCheckingForUpdate = false
     @Published var noUpdateNotice = false     // transient "you're up to date"
+    @Published var account: AccountInfo?      // who's signed in (display only)
+    @Published var signedOut = KeychainAuth.isSignedOut  // user explicitly logged out
+    private var accountTask: Task<Void, Never>?
 
     private let service = UsageService()
     private let store = SnapshotStore()
@@ -171,6 +174,23 @@ final class UsageViewModel: ObservableObject {
         plan = nil
         lastUpdated = nil
         errorMessage = nil
+        accountTask?.cancel()
+        account = nil
+    }
+
+    /// Look up which account the credentials belong to — once per credential
+    /// source (and again after a re-login), not on every poll.
+    private func updateAccountIfNeeded(_ loaded: LoadedCreds) {
+        if let a = account, a.source == loaded.source { return }
+        if accountTask != nil { return }
+        accountTask = Task {
+            let info = await AccountProfile.load(token: loaded.creds.accessToken,
+                                                 creds: loaded.creds, source: loaded.source)
+            accountTask = nil
+            guard !Task.isCancelled, !needsLogin else { return }
+            account = info
+            if plan == nil, let p = info.plan { plan = p }
+        }
     }
 
     /// Quietly check GitHub for a newer release, at most once every 6 hours.
@@ -234,11 +254,19 @@ final class UsageViewModel: ObservableObject {
         defer { isLoggingIn = false }
         // Usually the credentials are still in the keychain (e.g. Claude Code
         // refreshed them) — use them instead of sending the user to the browser.
-        await refresh(force: true)
-        guard needsLogin else { return }
+        // Not after an explicit logout, though: then the user wants a fresh
+        // login (possibly with another account), so always go to the browser.
+        if !signedOut {
+            await refresh(force: true)
+            guard needsLogin else { return }
+        }
         do {
             let creds = try await OAuthLogin().run()
             KeychainAuth.saveAppCreds(creds)
+            setSignedOut(false)
+            accountTask?.cancel()
+            accountTask = nil
+            account = nil
             needsLogin = false
             errorMessage = nil
             backoffStep = 0
@@ -249,15 +277,30 @@ final class UsageViewModel: ObservableObject {
         }
     }
 
+    /// Sign out for real: drop the app's own token AND stop falling back to
+    /// Claude Code's token, until the user logs in again. (Claude Code's own
+    /// keychain item is left untouched — that's Claude Code's login, not ours.)
     func logout() {
         KeychainAuth.deleteAppCreds()
-        usage = nil
-        plan = nil
-        lastUpdated = nil
-        errorMessage = nil
-        // Fall back to Claude Code creds if present; else require login.
-        needsLogin = ((try? KeychainAuth.load()) == nil)
-        if !needsLogin { Task { await refresh() } }
+        setSignedOut(true)
+        backoffStep = 0
+        nextAllowedFetch = nil
+        markLoggedOut()
+    }
+
+    /// From the logged-out panel: reuse the account Claude Code is signed into.
+    func useClaudeCodeLogin() async {
+        setSignedOut(false)
+        await refresh(force: true)
+        if needsLogin {
+            setSignedOut(true)
+            errorMessage = "Claude Code 로그인 정보를 찾을 수 없습니다.\n위 버튼으로 브라우저에서 로그인해 주세요."
+        }
+    }
+
+    private func setSignedOut(_ v: Bool) {
+        KeychainAuth.isSignedOut = v
+        signedOut = v
     }
 
     private func scheduleTimer() {
@@ -278,14 +321,15 @@ final class UsageViewModel: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let (u, p) = try await service.fetchUsage()
+            let (u, loaded) = try await service.fetchUsage()
             usage = u
             errorMessage = nil
             needsLogin = false
             lastUpdated = Date()
             nextAllowedFetch = nil
             backoffStep = 0
-            if let p { plan = p }
+            if let p = loaded.creds.subscriptionType ?? account?.plan { plan = p }
+            updateAccountIfNeeded(loaded)
 
             let snap = Snapshot(
                 timestamp: Date(),

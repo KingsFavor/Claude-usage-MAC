@@ -24,15 +24,15 @@ struct UsageService {
     static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     static let tokenURL = URL(string: "https://console.anthropic.com/v1/oauth/token")!
 
-    /// Returns the usage plus the plan (subscription type) of the credentials used.
-    func fetchUsage() async throws -> (usage: UsageResponse, plan: String?) {
+    /// Returns the usage plus the (possibly refreshed) credentials that fetched it.
+    func fetchUsage() async throws -> (usage: UsageResponse, creds: LoadedCreds) {
         var loaded = try loadCreds()
         // The keychain item is shared with Claude Code, which rotates these
         // tokens on its own (and a concurrent refresh rotates them too). So a
         // rejected token/refresh is retried once against a fresh keychain read
         // before it counts as logged out.
         do {
-            return (try await fetch(with: loaded), loaded.creds.subscriptionType)
+            return try await fetch(with: loaded)
         } catch UsageServiceError.unauthorized {
             let latest = try loadCreds()
             guard latest.creds.accessToken != loaded.creds.accessToken
@@ -40,7 +40,7 @@ struct UsageService {
                 throw UsageServiceError.unauthorized
             }
             loaded = latest
-            return (try await fetch(with: loaded), loaded.creds.subscriptionType)
+            return try await fetch(with: loaded)
         }
     }
 
@@ -52,7 +52,7 @@ struct UsageService {
     // One pass with the given credentials: refresh first if expired, then on a
     // 401/403 refresh once and retry. Refresh errors propagate as-is, so only a
     // rejected refresh token (not a dropped network after wake) is .unauthorized.
-    private func fetch(with loaded: LoadedCreds) async throws -> UsageResponse {
+    private func fetch(with loaded: LoadedCreds) async throws -> (usage: UsageResponse, creds: LoadedCreds) {
         var creds = loaded.creds
         if let exp = creds.expiresAt,
            Date(timeIntervalSince1970: exp / 1000.0) <= Date().addingTimeInterval(60) {
@@ -60,11 +60,13 @@ struct UsageService {
             KeychainAuth.save(creds, source: loaded.source)
         }
         do {
-            return try await getUsage(token: creds.accessToken)
+            let u = try await getUsage(token: creds.accessToken)
+            return (u, LoadedCreds(creds: creds, source: loaded.source))
         } catch UsageServiceError.unauthorized {
             let refreshed = try await refresh(creds)
             KeychainAuth.save(refreshed, source: loaded.source)
-            return try await getUsage(token: refreshed.accessToken)
+            let u = try await getUsage(token: refreshed.accessToken)
+            return (u, LoadedCreds(creds: refreshed, source: loaded.source))
         }
     }
 

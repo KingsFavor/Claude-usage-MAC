@@ -11,6 +11,9 @@ struct OAuthCredentials: Codable {
     var expiresAt: Double?        // epoch milliseconds
     var subscriptionType: String?
     var scopes: [String]?
+    // Recorded from the token-exchange response at in-app login (display only).
+    var accountEmail: String?
+    var organizationName: String?
 }
 
 enum CredSource { case app, claudeCode }
@@ -111,8 +114,20 @@ enum KeychainAuth {
         writeItem(service: claudeCodeService, data: data)
     }
 
+    // MARK: Explicit sign-out
+    // Logging out must stop the app from using ANY credentials — otherwise it
+    // silently falls back to Claude Code's token and looks like logout did
+    // nothing. Cleared only by an explicit login.
+    private static let signedOutKey = "signedOut"
+
+    static var isSignedOut: Bool {
+        get { UserDefaults.standard.bool(forKey: signedOutKey) }
+        set { UserDefaults.standard.set(newValue, forKey: signedOutKey) }
+    }
+
     // MARK: Unified access (prefer app login, fall back to Claude Code)
     static func load() throws -> LoadedCreds? {
+        if isSignedOut { return nil }
         if let c = try loadAppCreds() { return LoadedCreds(creds: c, source: .app) }
         if let c = try loadClaudeCodeCreds() { return LoadedCreds(creds: c, source: .claudeCode) }
         return nil

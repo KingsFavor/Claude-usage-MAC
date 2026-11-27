@@ -42,6 +42,10 @@ struct ContentView: View {
                 updateBanner(up)
             }
 
+            if !model.needsLogin {
+                accountRow
+            }
+
             if model.needsLogin {
                 loginPrompt
             } else if let err = model.errorMessage, model.usage == nil {
@@ -155,6 +159,55 @@ struct ContentView: View {
         .animation(.default, value: model.commandCopied)
     }
 
+    // Which account the numbers belong to, plus an explicit logout.
+    private var accountRow: some View {
+        let a = model.account
+        let primary = a?.email ?? a?.name ?? "계정 정보 확인 중…"
+        var details: [String] = []
+        if let n = a?.name, a?.email != nil { details.append(n) }
+        if let o = a?.organization, !o.isEmpty { details.append(o) }
+        if let src = a?.source {
+            details.append(src == .app ? "앱 로그인" : "Claude Code 로그인 공유")
+        }
+        return HStack(spacing: 8) {
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(primary)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                if !details.isEmpty {
+                    Text(details.joined(separator: " · "))
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+            Spacer(minLength: 4)
+            Button {
+                model.logout()
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                    Text("로그아웃")
+                }
+                .font(.system(size: 10, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help(a?.source == .claudeCode
+                  ? "이 앱에서만 로그아웃합니다 (Claude Code 로그인은 유지)"
+                  : "로그아웃")
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     private var loginPrompt: some View {
         VStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.questionmark")
@@ -188,6 +241,19 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 0.851, green: 0.459, blue: 0.337))
             .disabled(model.isLoggingIn)
+
+            if model.signedOut {
+                Button {
+                    Task { await model.useClaudeCodeLogin() }
+                } label: {
+                    Text("Claude Code에 로그인된 계정 사용")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .disabled(model.isLoggingIn || model.isLoading)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -294,16 +360,6 @@ struct ContentView: View {
             }
             .buttonStyle(.borderless)
             .help("새로고침")
-
-            if !model.needsLogin {
-                Button {
-                    model.logout()
-                } label: {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
-                .buttonStyle(.borderless)
-                .help("로그아웃")
-            }
 
             Button {
                 NSApplication.shared.terminate(nil)

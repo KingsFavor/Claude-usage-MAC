@@ -78,8 +78,14 @@ struct OAuthLogin {
         }
         struct T: Decodable { let access_token: String; let refresh_token: String?; let expires_in: Double? }
         let t = try JSONDecoder().decode(T.self, from: data)
+        // Account details are display-only: read them leniently so an
+        // unexpected shape can never fail the login itself.
+        let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        let email = (root?["account"] as? [String: Any])?["email_address"] as? String
+        let org = (root?["organization"] as? [String: Any])?["name"] as? String
         var c = OAuthCredentials(accessToken: t.access_token, refreshToken: t.refresh_token,
-                                 expiresAt: nil, subscriptionType: nil, scopes: nil)
+                                 expiresAt: nil, subscriptionType: nil, scopes: nil,
+                                 accountEmail: email, organizationName: org)
         if let ei = t.expires_in { c.expiresAt = (Date().timeIntervalSince1970 + ei) * 1000 }
         return c
     }
